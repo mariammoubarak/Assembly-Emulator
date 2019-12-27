@@ -9,6 +9,10 @@ temp dword ?
 
 operandsValArr dword 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 .CODE
+
+;--------------------------------------------------
+;Display the values of all registers
+;--------------------------------------------------
 isDumpregs proc
 mov eax,operandsValArr[0]
 mov ebx,operandsValArr[1]
@@ -17,32 +21,35 @@ mov edx,operandsValArr[3]
 mov esi,operandsValArr[4]
 mov edi,operandsValArr[5]
 mov ebp,operandsValArr[6]
-mov ax,operandsValArr[7]
-mov bx,operandsValArr[8]
-mov cx,operandsValArr[9]
-mov dx,operandsValArr[10]
-mov si,operandsValArr[11]
-mov di,operandsValArr[12]
-mov bp,operandsValArr[13]
-mov al,operandsValArr[14]
-mov bl,operandsValArr[15]
-mov cl,operandsValArr[16]
-mov dl,operandsValArr[17]
-mov ah,operandsValArr[18]
-mov bh,operandsValArr[19]
-mov ch,operandsValArr[20]
-mov dh,operandsValArr[21]
+mov ax,  word ptr operandsValArr[7]
+mov bx, word ptr operandsValArr[8]
+mov cx, word ptr operandsValArr[9]
+mov dx, word ptr operandsValArr[10]
+mov si, word ptr operandsValArr[11]
+mov di, word ptr operandsValArr[12]
+mov bp, word ptr operandsValArr[13]
+mov al, byte ptr operandsValArr[14]
+mov bl, byte ptr operandsValArr[15]
+mov cl,byte ptr operandsValArr[16]
+mov dl,byte ptr operandsValArr[17]
+mov ah,byte ptr operandsValArr[18]
+mov bh,byte ptr operandsValArr[19]
+mov ch, byte ptr operandsValArr[20]
+mov dh, byte ptr operandsValArr[21]
 
 call dumpregs
 ret
 isDumpregs endp
+;---------------------------------------------------------
+;Prints a signned integer to the user.
 ;---------------------------------------------------------
 isWriteint proc
 mov eax,operandsValArr[0]
 call writeint
 ret
 isWriteint endp
-
+;---------------------------------------------------------------------------------------------------------------------
+;Converts the string(decimal) immediate value to a decimal number
 ;---------------------------------------------------------------------------------------------------------------------
 stringToDec proc
 
@@ -68,8 +75,8 @@ ret
 stringToDec endp
 
 
-
-
+;---------------------------------------------------------------------------------------------------------------------
+;Converts the string(hexadecimal) immediate value to a decimal number
 ;--------------------------------------------------------------------------------------------------------------------
 
 HexaToDec proc
@@ -80,13 +87,9 @@ mov edi,0
 convert:
 mov al,  [esi+edi]
 mov temp,ecx
-;cmp al, '0'
-;je endd
-
 
 cmp al,'a'
 jb number
-
 
 
 cmp al, 'f'
@@ -152,6 +155,7 @@ cmp ecx,1
 je ecx1
 sub ecx,2
 mov ebx,16
+;To muliply in the right power of 16
 power:
 mov ebx,ebx
 shl ebx,4
@@ -183,7 +187,8 @@ ret
 HexaToDec endp
 
 
-
+;---------------------------------------------------------------------------------------------------------------------
+;Converts the string(Binary) immediate value to a decimal number
 ;---------------------------------------------------------------------------------------------------------------------
 
 stringToBinary proc
@@ -205,6 +210,7 @@ cmp ecx,1
 je ecx1
 sub ecx,2
 mov ebx,2
+;To muliply in the right power of 2
 power:
 mov ebx,ebx
 shl ebx,1
@@ -244,7 +250,7 @@ stringToBinary endp
 
 main PROC
 
-Call stringToBinary
+call HexaToDec
 	;CALL DumpRegs
 	exit
 main ENDP
