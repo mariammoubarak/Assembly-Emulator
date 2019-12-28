@@ -1,0 +1,34 @@
+;******************************************************************Start of checkSizes Proc************************************************************
+checkSizes Proc
+cmp operand1Index,24
+ja check2bytes
+cmp operand2Index,24
+ja errorr
+ jmp toend
+check2bytes:
+   cmp operand1Index,52
+   ja check1byte
+   cmp operand2Index,28
+   jb errorr
+   cmp operand2Index,52
+   ja errorr
+   jmp toend
+
+ check1byte:
+   cmp operand2Index,84
+   jb errorr
+   cmp operand2Index,84
+   ja errorr
+   jmp toend
+
+errorr:
+mov edx, offset movBothRegistersAreNotEqual
+call writestring
+call crlf
+exit
+
+toend:
+
+RET
+checkSizes endp
+;******************************************************************End of checkSizes Proc************************************************************
