@@ -1,0 +1,43 @@
+.data
+yes byte "YES",0
+no  byte "NO",0
+answer byte ?
+string byte 1000 dup(?)
+movxByteSizeNotBigger byte "error A2149: byte register cannot be first operand",0
+movxWordSizeNotBigger byte "error A2149: word register cannot be first operand",0
+movxBothRegistersAreEqual byte "error A2070: invalid instruction operands",0
+ImmediateOperandNotValid byte "error A2001: immediate operand not allowed",0
+movMemoryToMemoryOperandNotValid byte "error A2070: invalid instruction operands",0
+ESPnotValid byte "Invalid Register Use",0
+movBothRegistersAreNotEqual byte "error A2022: instruction operands must be the same size",0	
+
+
+operandsValArr dword 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,0
+;operandsStrArr byte "EAX", "EBX", "ECX", "EDX", "EDI", "ESI", "EBP", "AX","BX", "CX", "DX", "DI", "SI", "BP", "AL", "AH", "BL", "BH", "CL", "CH", "DL", "DH",0
+
+movxMemoryOperandNotValid byte "error A2000: memory operand not allowed",0
+
+bit32 dword ?
+bit16 dword ?
+bit8h dword ?
+bit8l dword ?
+operand1Index dword ?
+operand2Index dword ?
+
+operandSizeNotValid byte "error A2070: invalid instruction operands",0
+instruction byte 20 dup(?)
+operand1 byte 8 dup(?)
+operand2 byte 8 dup(?)
+
+
+
+instructionSize dword ?
+operand1Size    dword ?
+operand2Size    dword ?
+memoryTemp1 byte ?
+memoryTemp2 byte ?
+immediateTemp byte ?
+wordcount word 1
+spacecount word 0
+
+warnMessag byte "Warning: The result of this operation won’t fit in the specified destination, would you still like to continue? (Y/N)",0
