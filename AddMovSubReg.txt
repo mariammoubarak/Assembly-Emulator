@@ -1,0 +1,1310 @@
+include irvine32.inc
+
+.data
+yes byte "YES",0
+no  byte "NO",0
+answer byte ?
+string byte 1000 dup(?)
+movxByteSizeNotBigger byte "error A2149: byte register cannot be first operand",0
+movxWordSizeNotBigger byte "error A2149: word register cannot be first operand",0
+movxBothRegistersAreEqual byte "error A2070: invalid instruction operands",0
+ImmediateOperandNotValid byte "error A2001: immediate operand not allowed",0
+movMemoryToMemoryOperandNotValid byte "error A2070: invalid instruction operands",0
+ESPnotValid byte "Invalid Register Use",0
+movBothRegistersAreNotEqual byte "error A2022: instruction operands must be the same size",0	
+
+operandsValArr dword 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0
+;operandsValArr dword 1,1,1,2,1,1,1,1,65000,600,1,1,1,1,100,200,1,1,0,0,0,0
+;operandsStrArr byte "EAX", "EBX", "ECX", "EDX", "EDI", "ESI", "EBP", "AX","BX", "CX", "DX", "DI", "SI", "BP", "AL", "BL", "CL", "DL", "AH", "BH", "CH", "DH",0
+
+movxMemoryOperandNotValid byte "error A2000: memory operand not allowed",0
+
+bit32 dword ?
+bit16 dword ?
+bit8h dword ?
+bit8l dword ?
+operand1Index dword ?
+operand2Index dword ?
+
+operandSizeNotValid byte "error A2070: invalid instruction operands",0
+instruction byte 20 dup(?)
+operand1 byte 8 dup(?)
+operand2 byte 8 dup(?)
+
+
+
+instructionSize dword ?
+operand1Size    dword ?
+operand2Size    dword ?
+memoryTemp1 byte ?
+memoryTemp2 byte ?
+immediateTemp byte ?
+wordcount word 1
+spacecount word 0
+
+tempMem byte "1010101"
+memoryTemp byte ?
+num word  ?
+decimal dword  0
+temp dword ?
+warnMessag byte "Warning: The result of this operation won’t fit in the specified destination, would you still like to continue? (Y/N)",0
+
+.code
+main proc
+
+mov ecx,100
+ mov edx,offset string
+ call readString
+
+  call splitting
+  mov edx,offset instruction
+  call writestring
+   call crlf
+
+   mov edx,offset operand1
+  call writestring
+   call crlf
+
+   mov edx,offset operand2
+  call writestring
+   call crlf
+
+   call getOperand1
+   call getOperand2
+
+   mov eax, operand1Index
+  call writedec
+   call crlf
+
+   mov eax, operand2Index
+  call writedec
+   call crlf
+
+   ;call isMovReg
+   call isAddReg
+   ;call isSubReg
+   mov ebx,operand1Index
+   mov eax, [operandsValArr+ebx]
+   call writedec
+   call crlf
+
+   call isDumpregs
+	exit
+	   
+main endp
+;****************************************************************callDump&writeInt&Conversions Proc*******************************************************************
+;Display the values of all registers
+;--------------------------------------------------
+isDumpregs proc
+mov eax,operandsValArr[0]
+mov ebx,operandsValArr[4]
+mov ecx,operandsValArr[8]
+mov edx,operandsValArr[12]
+mov esi,operandsValArr[16]
+mov edi,operandsValArr[20]
+mov ebp,operandsValArr[24]
+mov ax,  word ptr operandsValArr[28]
+mov bx, word ptr operandsValArr[32]
+mov cx, word ptr operandsValArr[36]
+mov dx, word ptr operandsValArr[40]
+mov si, word ptr operandsValArr[44]
+mov di, word ptr operandsValArr[48]
+mov bp, word ptr operandsValArr[52]
+mov al, byte ptr operandsValArr[56]
+mov bl, byte ptr operandsValArr[60]
+mov cl,byte ptr operandsValArr[64]
+mov dl,byte ptr operandsValArr[68]
+mov ah,byte ptr operandsValArr[72]
+mov bh,byte ptr operandsValArr[76]
+mov ch, byte ptr operandsValArr[80]
+mov dh, byte ptr operandsValArr[84]
+
+call dumpregs
+ret
+isDumpregs endp
+;---------------------------------------------------------
+;Prints a signned integer to the user.
+;---------------------------------------------------------
+isWriteint proc
+mov eax,operandsValArr[0]
+call writeint
+ret
+isWriteint endp
+
+;---------------------------------------------------------------------------------------------------------------------
+stringToDec proc
+
+
+mov edi, offset tempMem
+mov ecx, lengthof tempMem
+mov ax,0
+
+convert:
+mov bl, [edi]
+and bl, 11001111b
+mov dx,10
+mul dx
+movzx si,bl
+add ax,si
+
+
+inc edi
+loop convert
+
+mov num, ax
+ret
+stringToDec endp
+
+
+;---------------------------------------------------------------------------------------------------------------------
+;Converts the string(hexadecimal) immediate value to a decimal number
+;--------------------------------------------------------------------------------------------------------------------
+
+HexaToDec proc
+mov esi, offset tempMem
+mov ecx, lengthof tempMem
+mov edi,0
+
+convert:
+mov al,  [esi+edi]
+mov temp,ecx
+
+cmp al,'a'
+jb number
+
+
+cmp al, 'f'
+jbe letters
+
+letters:
+
+cmp al,'a'
+je a
+
+
+cmp al,'b'
+je b
+
+
+cmp al,'c'
+je cc
+
+
+cmp al,'d'
+je d
+
+
+cmp al,'e'
+je e
+
+
+cmp al,'f'
+je f
+
+a:
+mov al,10
+jmp powers
+
+b:
+mov al,11
+jmp powers
+
+cc:
+mov al,12
+jmp powers
+
+d:
+mov al,13
+jmp powers
+
+e:
+mov al,14
+jmp powers
+
+f:
+mov al,15
+jmp powers
+
+number:
+
+and al, 11001111b
+powers:
+cmp ecx,2
+je ecx2
+
+cmp ecx,1
+je ecx1
+sub ecx,2
+mov ebx,16
+;To muliply in the right power of 16
+power:
+mov ebx,ebx
+shl ebx,4
+loop power
+movzx eax, al
+mul ebx
+add decimal,eax
+jmp endd
+
+ecx2:
+mov ebx,16
+movzx eax, al
+mul ebx
+add decimal,eax
+jmp endd
+
+ecx1:
+movzx eax, al
+add decimal,eax
+jmp enddd
+endd:
+mov ecx, temp
+inc edi
+dec ecx
+jmp convert
+
+enddd:
+ret
+HexaToDec endp
+
+
+;---------------------------------------------------------------------------------------------------------------------
+;Converts the string(Binary) immediate value to a decimal number
+;---------------------------------------------------------------------------------------------------------------------
+
+stringToBinary proc
+mov esi, offset tempMem
+mov ecx, lengthof tempMem
+mov edi,0
+
+convert:
+
+mov al,  [esi+edi]
+mov temp,ecx
+
+and al, 11001111b
+powers:
+cmp ecx,2
+je ecx2
+
+cmp ecx,1
+je ecx1
+sub ecx,2
+mov ebx,2
+;To muliply in the right power of 2
+power:
+mov ebx,ebx
+shl ebx,1
+loop power
+movzx eax, al
+mul ebx
+add decimal,eax
+jmp endd
+
+ecx2:
+mov ebx,2
+movzx eax, al
+mul ebx
+add decimal,eax
+jmp endd
+
+ecx1:
+movzx eax, al
+add decimal,eax
+jmp enddd
+
+
+
+endd:
+mov ecx, temp
+inc edi
+dec ecx
+jmp convert
+
+enddd:
+ret
+stringToBinary endp
+
+
+
+;****************************************************************End of callDump&writeInt&Conversions Proc*******************************************************************
+;******************************************************************Start of StackRegNotValid Proc*******************************************************************
+
+StackRegNotValid Proc
+  mov edx, offset ESPnotValid
+  call writestring
+  call crlf
+  exit
+  Ret
+StackRegNotValid ENDP
+;******************************************************************End of StackRegNotValid Proc*******************************************************************
+
+;******************************************************************Start of getOperand1 Proc*******************************************************************
+getOperand1 Proc
+
+mov ecx,operand1Size
+
+mov esi, offset operand1  ;index 0
+mov edi, offset operand1  ;index 2
+add edi,2
+mov ebx, offset operand1  ;index 1
+add ebx,1
+
+cmp ecx,3
+je bytes3regs
+
+cmp ecx,2
+je bytes2regs
+
+
+bytes3regs:
+
+mov al, 'e'
+cmp al, byte ptr [esi]
+jne immOrMem
+
+mov al,'x'
+cmp al, byte ptr [edi]
+jne ediOrEsi
+
+mov al,'a'
+cmp al, byte ptr [ebx]  ;eax
+je isEax
+
+mov al,'b'
+cmp al, byte ptr [ebx]  ;ebx
+je isEbx
+
+
+mov al,'c'
+cmp al, byte ptr [ebx]  ;ecx
+je isEcx
+
+
+mov al,'d'
+cmp al, byte ptr [ebx]  ;edx
+je isEdx
+
+
+ediOrEsi:
+mov al, 'i'
+cmp al,byte ptr [edi]
+jne ebpOrEsp
+
+mov al,'s'
+
+cmp al, byte ptr [ebx]   ;esi
+je isEsi
+
+
+mov al, 'd'
+cmp al, byte ptr [ebx]     ;edi
+je isEdi
+
+
+ebpOrEsp:
+mov al,'p'
+
+cmp al, byte ptr [edi]
+jne immOrMem
+
+mov al,'s'
+sub esi,1
+cmp al, byte ptr [ebx]   ;esp
+je isEsp
+
+
+mov al, 'b'
+cmp al, byte ptr [ebx]     ;ebp
+je isEbp
+
+
+bytes2regs:
+
+mov al ,'x'
+cmp al, byte ptr [ebx]
+jne LorH
+
+mov al ,'a'
+
+cmp al, byte ptr [esi]  ;ax
+je isAx
+   
+
+mov al ,'b'
+cmp al, byte ptr [esi]   ;bx
+je isBx
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]   ;cx
+je isCx
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]    ;dx
+je isDx
+    
+
+LorH:
+mov al, 'l'
+cmp al, byte ptr [esi+1]
+jne Hregs
+
+mov al ,'a'
+cmp al, byte ptr [esi]   ;al
+je isAl
+
+
+mov al ,'b'
+cmp al, byte ptr [esi]    ;bl
+je isBl
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]   ;cl
+je isCl
+
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]  ;dl
+je isDl
+
+
+Hregs:
+mov al, 'h'
+cmp al, byte ptr [esi+1]
+jne iorp
+
+mov al ,'a'
+cmp al, byte ptr [esi]    ;ah
+je isAh
+
+
+mov al ,'b'
+cmp al, byte ptr [esi]     ;bh
+je isBh
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]       ;ch
+je isCh
+
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]     ;dh
+je isDh
+
+iorp:
+mov al , 'i'
+cmp al, byte ptr [ebx]
+jne p
+
+mov al , 's'
+cmp al, byte ptr [esi]
+je isSi
+
+mov al, 'd'
+cmp al, byte ptr [esi]
+je isDi
+
+p:
+mov al , 'p'
+cmp al, byte ptr [ebx]
+jne immOrMem
+
+mov al , 'b'
+cmp al, byte ptr [esi]
+je isBp
+
+mov al, 's'
+cmp al, byte ptr [esi]
+je isSp
+
+immOrMem:
+call memoryOrImmediate
+jmp toend
+
+isEax:
+  mov operand1Index, 0
+  mov bit32, 0
+  mov bit16,28
+  mov bit8l,56
+  mov bit8h,72
+
+jmp toend
+
+isEbx:
+   mov operand1Index, 4
+   mov bit32, 4
+  mov bit16,32
+  mov bit8l,60
+  mov bit8h,76
+jmp toend
+
+isEcx:
+  mov operand1Index, 8
+  mov bit32, 8
+  mov bit16,36
+  mov bit8l,64
+  mov bit8h,80
+jmp toend
+
+isEdx:
+  mov operand1Index, 12
+  mov bit32, 12
+  mov bit16,40
+  mov bit8l,68
+  mov bit8h,84
+jmp toend
+
+isEsi:
+  mov operand1Index, 16
+  mov bit32, 16
+  mov bit16,44
+  
+jmp toend
+
+isEdi:
+  mov operand1Index, 20
+  mov bit32,20
+  mov bit16,48
+
+jmp toend
+
+isEsp:
+  call StackRegNotValid
+
+jmp toend
+
+isEbp:
+  mov operand1Index, 24
+  mov bit32,24
+  mov bit16,52
+jmp toend
+
+
+isAx:
+  mov operand1Index, 28
+  mov bit32,0
+  mov bit16,28
+  mov bit8l,56
+  mov bit8h,72
+jmp toend
+
+isBx:
+  mov operand1Index, 32
+  mov bit32,4
+  mov bit16,32
+  mov bit8l,60
+  mov bit8h,76
+jmp toend
+
+isCx:
+  mov operand1Index, 36
+  mov bit32, 8
+  mov bit16,36
+  mov bit8l,64
+  mov bit8h,80
+jmp toend
+
+isDx:
+  mov operand1Index, 40
+  mov bit32, 12
+  mov bit16,40
+  mov bit8l,68
+  mov bit8h,84
+jmp toend
+
+isAl:
+  mov operand1Index, 56
+  mov bit32,0
+  mov bit16,28
+  mov bit8l,56
+  mov bit8h,72
+jmp toend 
+
+isBl:
+  mov operand1Index, 60
+  mov bit32,4
+  mov bit16,32
+  mov bit8l,60
+  mov bit8h,76
+jmp toend
+
+isCl:
+  mov operand1Index, 64
+  mov bit32, 8
+  mov bit16,36
+  mov bit8l,64
+  mov bit8h,80
+jmp toend
+
+isDl:
+  mov operand1Index, 68
+  mov bit32, 12
+  mov bit16,40
+  mov bit8l,68
+  mov bit8h,84
+jmp toend
+
+isAh:
+  mov operand1Index, 72
+  mov bit32,0
+  mov bit16,28
+  mov bit8l,56
+  mov bit8h,72
+jmp toend
+
+isBh:
+  mov operand1Index, 76
+  mov bit32,4
+  mov bit16,32
+  mov bit8l,60
+  mov bit8h,76
+jmp toend
+
+isCh:
+  mov operand1Index, 80
+  mov bit32, 8
+  mov bit16,36
+  mov bit8l,64
+  mov bit8h,80
+jmp toend
+
+isDh:
+  mov operand1Index, 84
+  mov bit32, 12
+  mov bit16,40
+  mov bit8l,68
+  mov bit8h,84
+jmp toend
+
+
+isSi:
+  mov operand1Index, 44
+  mov bit32, 16
+  mov bit16,44
+jmp toend
+
+isDi:
+  mov operand1Index, 48
+  mov bit32,20
+  mov bit16,48
+jmp toend
+
+
+isSp:
+  call StackRegNotValid 
+jmp toend
+
+
+isBp:
+  mov operand1Index, 52
+  mov bit32,24
+  mov bit16,52
+jmp toend
+
+
+toend:
+
+RET
+getOperand1 ENDP
+;******************************************************************End of getOperand1 Proc*******************************************************************
+
+;******************************************************************Start of getOperand2 Proc*******************************************************************
+getOperand2 Proc
+
+mov ecx,operand2Size
+
+mov esi, offset operand2  ;index 0
+mov edi, offset operand2  ;index 2
+add edi,2
+mov ebx, offset operand2  ;index 1
+add ebx,1
+
+cmp ecx,3
+je bytes3regs
+
+cmp ecx,2
+je bytes2regs
+
+
+bytes3regs:
+
+mov al, 'e'
+cmp al, byte ptr [esi]
+jne immOrMem
+
+mov al,'x'
+cmp al, byte ptr [edi]
+jne ediOrEsi
+
+mov al,'a'
+cmp al, byte ptr [ebx]  ;eax
+je isEax
+
+mov al,'b'
+cmp al, byte ptr [ebx]  ;ebx
+je isEbx
+
+
+mov al,'c'
+cmp al, byte ptr [ebx]  ;ecx
+je isEcx
+
+
+mov al,'d'
+cmp al, byte ptr [ebx]  ;edx
+je isEdx
+
+
+ediOrEsi:
+mov al, 'i'
+cmp al,byte ptr [edi]
+jne ebpOrEsp
+
+mov al,'s'
+
+cmp al, byte ptr [ebx]   ;esi
+je isEsi
+
+
+mov al, 'd'
+cmp al, byte ptr [ebx]     ;edi
+je isEdi
+
+
+ebpOrEsp:
+mov al,'p'
+
+cmp al, byte ptr [edi]
+jne immOrMem
+
+mov al,'s'
+sub esi,1
+cmp al, byte ptr [ebx]   ;esp
+je isEsp
+
+
+mov al, 'b'
+cmp al, byte ptr [ebx]     ;ebp
+je isEbp
+
+
+bytes2regs:
+
+mov al ,'x'
+cmp al, byte ptr [ebx]
+jne LorH
+
+mov al ,'a'
+
+cmp al, byte ptr [esi]  ;ax
+je isAx
+   
+
+mov al ,'b'
+cmp al, byte ptr [esi]   ;bx
+je isBx
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]   ;cx
+je isCx
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]    ;dx
+je isDx
+    
+
+LorH:
+mov al, 'l'
+cmp al, byte ptr [esi+1]
+jne Hregs
+
+mov al ,'a'
+cmp al, byte ptr [esi]   ;al
+je isAl
+
+
+mov al ,'b'
+cmp al, byte ptr [esi]    ;bl
+je isBl
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]   ;cl
+je isCl
+
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]  ;dl
+je isDl
+
+
+Hregs:
+mov al, 'h'
+cmp al, byte ptr [esi+1]
+jne iorp
+
+mov al ,'a'
+cmp al, byte ptr [esi]    ;ah
+je isAh
+
+
+mov al ,'b'
+cmp al, byte ptr [esi]     ;bh
+je isBh
+
+
+mov al ,'c'
+cmp al, byte ptr [esi]       ;ch
+je isCh
+
+
+
+mov al ,'d'
+cmp al, byte ptr [esi]     ;dh
+je isDh
+
+iorp:
+mov al , 'i'
+cmp al, byte ptr [ebx]
+jne p
+
+mov al , 's'
+cmp al, byte ptr [esi]
+je isSi
+
+mov al, 'd'
+cmp al, byte ptr [esi]
+je isDi
+
+p:
+mov al , 'p'
+cmp al, byte ptr [ebx]
+jne immOrMem
+
+mov al , 'b'
+cmp al, byte ptr [esi]
+je isBp
+
+mov al, 's'
+cmp al, byte ptr [esi]
+je isSp
+
+immOrMem:
+call secmemoryOrImmediate
+jmp toend
+
+isEax:
+  mov operand2Index, 0
+jmp toend
+
+isEbx:
+   mov operand2Index, 4
+jmp toend
+
+isEcx:
+  mov operand2Index, 8
+  
+jmp toend
+
+isEdx:
+  mov operand2Index, 12
+  
+jmp toend
+
+isEsi:
+  mov operand2Index, 16
+  
+jmp toend
+
+isEdi:
+  mov operand2Index, 20
+jmp toend
+
+isEsp:
+  call StackRegNotValid
+
+jmp toend
+
+isEbp:
+  mov operand2Index, 24
+  
+jmp toend
+
+
+isAx:
+  mov operand2Index, 28
+  
+jmp toend
+
+isBx:
+  mov operand2Index, 32
+  
+jmp toend
+
+isCx:
+  mov operand2Index, 36
+  
+jmp toend
+
+isDx:
+  mov operand2Index, 40
+  
+jmp toend
+
+isAl:
+  mov operand2Index, 56
+  
+jmp toend 
+
+isBl:
+  mov operand2Index, 60
+ 
+jmp toend
+
+isCl:
+  mov operand2Index, 64
+  
+jmp toend
+
+isDl:
+  mov operand2Index, 68
+  
+jmp toend
+
+isAh:
+  mov operand2Index, 72
+  
+jmp toend
+
+isBh:
+  mov operand2Index, 76
+  
+jmp toend
+
+isCh:
+  mov operand2Index, 80
+  
+jmp toend
+
+isDh:
+  mov operand2Index, 84
+  
+jmp toend
+
+
+isSi:
+  mov operand2Index, 44
+  
+jmp toend
+
+isDi:
+  mov operand2Index, 48
+  
+jmp toend
+
+
+isSp:
+  call StackRegNotValid 
+jmp toend
+
+
+isBp:
+  mov operand2Index, 52
+  
+jmp toend
+
+
+toend:
+
+RET
+getOperand2 ENDP
+;******************************************************************End of getOperand2 Proc*****************************************************
+
+;******************************************************************Start of Splitting Proc*******************************************************************
+
+splitting PROC
+mov ecx,eax
+mov ebx,offset instruction
+mov esi,offset operand1
+mov edi,offset operand2
+
+splitString:
+     mov al,[edx]
+	 cmp al,' '
+	 je equalcondition
+
+	 cmp al,','
+	 je equalcondition
+
+	 cmp al,';'
+	 je stoplooping
+
+	 mov spacecount,0
+	 cmp wordcount,1
+	 jne operand1check
+	 mov [ebx],al
+	 inc ebx
+	 inc instructionSize
+	 jmp enditeration
+
+	 operand1check:
+	 cmp wordcount,2
+	 jne operand2check
+	 mov [esi],al
+	 inc operand1Size
+	 inc esi
+	 jmp enditeration
+
+	 operand2check:
+	 mov [edi],al
+	 inc operand2Size
+	 inc edi
+	 jmp enditeration
+
+	 equalcondition:
+	 inc spacecount
+	 cmp spacecount,1
+	 jne enditeration
+	 inc wordcount
+	 jmp enditeration
+
+     stoplooping:
+	 mov ecx,1
+
+     enditeration:
+	 inc edx
+
+loop splitString
+
+mov edx,offset instruction
+mov al,[edx]
+cmp al,'c'
+je extension
+cmp al,'C'
+je extension
+jmp toend
+extension:
+add edx,4
+mov al,' '
+mov [edx],al
+inc edx
+mov ecx,operand1Size
+mov ebx,offset operand1
+extend:
+   mov al,[ebx]
+   mov [edx],al
+   mov al,' '
+   mov [ebx],al
+   inc edx
+   inc ebx
+loop extend
+ 
+toend:
+
+RET
+splitting ENDP
+;******************************************************************End of Splitting Proc*******************************************************************
+
+;******************************************************************Start of ImmediateNotValid Error*******************************************************************
+ImmediateNotValid proc
+mov edx, offset ImmediateOperandNotValid;
+call writestring
+call crlf
+exit
+ImmediateNotValid endp
+;******************************************************************End of ImmediateNotValid Error*******************************************************************
+
+;******************************************************************Start of memoryOrImmediate instruction*******************************************************************
+
+memoryOrImmediate PROC
+
+mov al, byte ptr operand1
+
+cmp al,24h ;$
+je memory
+
+cmp al,40h ;@
+je memory
+
+cmp al,5Fh ;_
+je memory
+
+cmp al, 30h ;0
+je immediate
+
+cmp al, 41h ;A
+jl immediate
+
+cmp al, 5Ah ;Z
+jle memory
+
+cmp al,61h ;a
+jl immediate
+
+cmp al, 74h ;z
+jle memory
+
+
+
+immediate:
+call ImmediateNotValid;
+
+
+
+memory:
+mov cl, operand1
+mov memoryTemp1,cl
+;call movMemory
+jmp endd
+
+
+endd:
+ret
+memoryOrImmediate ENDP
+;******************************************************************End of memoryOrImmediate Proc************************************************
+;******************************************************************Start of checkSizes Proc************************************************************
+checkSizes Proc
+cmp operand1Index,24
+ja check2bytes
+cmp operand2Index,24
+ja errorr
+ jmp toend
+check2bytes:
+   cmp operand1Index,52
+   ja check1byte
+   cmp operand2Index,28
+   jb errorr
+   cmp operand2Index,52
+   ja errorr
+   jmp toend
+
+ check1byte:
+   cmp operand2Index,56
+   jb errorr
+   cmp operand2Index,84
+   ja errorr
+   jmp toend
+
+errorr:
+mov edx, offset movBothRegistersAreNotEqual
+call writestring
+call crlf
+exit
+
+toend:
+
+RET
+checkSizes endp
+;******************************************************************End of checkSizes Proc************************************************************
+
+;******************************************************************Start of checkOverflowWarning Proc************************************************************
+checkOverflowWarning Proc
+
+cmp operand1Index ,24
+ja bytes2
+
+bytes4:
+mov ecx,operand1Index
+cmp [operandsValArr+ecx],4294967295
+ja warning
+jmp toend
+
+bytes2:
+cmp operand1Index ,52
+ja bytes1
+mov ecx,operand1Index
+cmp [operandsValArr+ecx],65535
+ja warning
+jmp toend
+
+bytes1:
+mov ecx,operand1Index
+cmp [operandsValArr+ecx],255
+ja warning
+jmp toend
+
+warning:
+mov edx, offset warnMessag
+call writestring
+
+mov ecx,3
+mov edx, offset answer
+call readstring
+
+
+mov ecx, eax
+;convert user's answer to upper always
+ToUpper:
+       and byte ptr[edx], 11011111b
+	   inc edx
+loop ToUpper	    
+cld
+mov ecx, eax
+mov esi, offset yes
+mov edi, offset answer
+repe cmpsb 
+je toend
+;call dumpregs bta3tna
+call dumpregs
+exit
+
+toend:
+
+ret
+checkOverflowWarning endp
+;******************************************************************End of checkOverflowWarning Proc************************************************************
+
+;******************************************************************Start of isMovReg Proc************************************************************
+isMovReg Proc
+
+call checkSizes
+mov ecx,operand2Index
+mov eax, [operandsValArr+ecx]
+mov ecx,operand1Index
+mov [operandsValArr+ecx], eax
+;call extendMoves
+
+ret
+isMovReg endp
+;******************************************************************End of isMovReg Proc************************************************************
+
+;******************************************************************Start of isAddReg Proc************************************************************
+isAddReg Proc
+
+call checkSizes
+mov ecx,operand2Index
+mov eax, [operandsValArr+ecx]
+mov ecx,operand1Index
+add [operandsValArr+ecx], eax
+;call extendMoves
+call checkOverflowWarning
+
+ret
+isAddReg endp
+;******************************************************************End of isAddReg Proc************************************************************
+
+;******************************************************************Start of isSubReg Proc************************************************************
+isSubReg Proc
+
+call checkSizes
+mov ecx,operand2Index
+mov eax, [operandsValArr+ecx]
+mov ecx,operand1Index
+sub [operandsValArr+ecx], eax
+;call extendMoves
+
+ret
+isSubReg endp
+;******************************************************************End of isSubReg Proc************************************************************
+end main
+
+
